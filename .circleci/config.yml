@@ -1,0 +1,32 @@
+version: 2.1
+
+jobs:
+  deploy_react:
+    docker: 
+      - image: node:14.16.1
+
+    steps:
+      - checkout
+
+      - run:
+          name: Install Dependencies
+          command: |
+            npm install
+            apt-get update && apt-get install -y python-dev
+            curl -O https://bootstrap.pypa.io/pip/2.7/get-pip.py
+            python get-pip.py
+            pip install awscli --upgrade
+      - run:
+          name: Build static files for React App
+          command: |
+            node -v
+            npm -v
+            npm run build
+      - run:
+          name: Deploy to S3
+          command: |
+            aws s3 sync ./build s3://lyric-lab-static-site-s3 --delete --acl public-read
+workflows:
+  build_and_deploy:
+    jobs:
+      - deploy_react

@@ -1,88 +1,197 @@
-import React, { useRef, useEffect, useState } from 'react';
-import Tesseract from 'tesseract.js';
+import React from 'react';
+import {Backdrop, CircularProgress} from '@material-ui/core';
+import { createWorker, PSM, OEM } from 'tesseract.js';
+import { rword } from 'rword';
+
+const penWidth = 5;
+const MODES = {
+    CHECKING_WORD: 'CHECKING_WORD',
+    READY: 'READY'
+};
 
 class DrawingCanvas extends React.Component{
     constructor(props){
         super(props);
         this.canvas = null;
-        this.context = null;
+        this.canvasContext = null;
         this.canvasRef = React.createRef();
         this.state = {
-            result: ''
+            writtenWord: '',
+            word: '',
+            mode: MODES.READY,
+            successCount: 0
         };
     }
     
-    async doOCR(){
-        const { data: { text } } = await Tesseract.recognize(canvas,
-        'eng',
-        {
-            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-            tessedit_pageseg_mode: 8,
-            logger: m => console.log(m) 
+    async checkWord(){
+        await this.doOcr();
+        const nextWord = this.nextWord.bind(this);
+        if(this.state.word.toLowerCase() === this.state.writtenWord.toLowerCase()){
+            this.setSuccess();
+            setTimeout(function(){ 
+                nextWord();
+            }, 3000);
+        }
+    }
+
+    async doOcr(){
+        this.setMode(MODES.CHECKING_WORD);
+        const worker = createWorker({
+            logger: m => console.log(m)
         });
-        this.setState({result:text});
+        await worker.load();
+        await worker.loadLanguage('eng');
+        await worker.initialize('eng');
+        await worker.setParameters({
+            tessedit_ocr_engine_mode: OEM.OEM_TESSERACT_LSTM_COMBINED,
+            // tessedit_char_whitelist: "abcdefghijklmnopqrstuvwxyz",
+            tessedit_pageseg_mode: PSM.SINGLE_WORD,
+        });
+        const { data: { text } } = await worker.recognize(this.canvas);
+        this.setWrittenWord(text.trim());
+        this.setMode(MODES.READY);
         console.log(text);
     }
 
+    setSuccess(){
+        this.setState({
+            result: 'Success!',
+            successCount: ++this.state.successCount
+        });
+    }
     clearCanvas(){
-        this.context.fillStyle = '#fff';
-        this.context.fillRect(0, 0, canvas.width, canvas.height);
+        this.canvasContext.fillStyle = '#fff';
+        this.canvasContext.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    getWord(){
+        this.setState({word:rword.generate(1, { length: 5 })});
+    }
+
+    setMode(mode){
+        this.setState({mode});
+    }
+
+    setWrittenWord(writtenWord){
+        this.setState({writtenWord});
+    }
+
+    setResult(result){
+        this.setState({result});
+    }
+
+    nextWord(){
+        this.clearCanvas();
+        this.setResult('');
+        this.setWrittenWord('');
+        this.getWord();
+    }
+
+    isReady(){
+        return this.state.mode === MODES.READY;
     }
 
     componentDidMount(){
+        const self = this;
         this.canvas = this.canvasRef.current;
         const context = canvas.getContext("2d");
-        this.context = context;
+        this.canvasContext = context;
         
-        this.context.fillStyle = '#fff';
-        this.context.lineWidth = 4;
-        this.context.fillRect(0, 0, canvas.width, canvas.height);
+        this.canvasContext.fillStyle = '#fff';
+        this.canvasContext.lineWidth = penWidth;
+        this.canvasContext.fillRect(0, 0, canvas.width, canvas.height);
 
-        this.context.lineCap = "round";
+        this.canvasContext.lineCap = "round";
         let paint = false;
-        const left = canvas.offsetLeft;
-        const top = canvas.offsetTop;
+        const left = this.canvas.offsetLeft;
+        const top = this.canvas.offsetTop;
 
         this.canvas.addEventListener('mousedown', function(e){
-            if(e.button == 0){
-                paint = true;
-                context.beginPath();
-                context.moveTo(e.pageX-left, e.pageY-top);
-            } else {
-                paint = false;
+            if(self.isReady()){
+                if(e.button == 0 ){
+                    paint = true;
+                    context.beginPath();
+                    context.moveTo(e.pageX-left, e.pageY-top);
+                } else {
+                    paint = false;
+                }
             }
         });
 
         this.canvas.addEventListener('mousemove', function(e){
-            if(paint){
+            if(paint && self.isReady()){
                 context.lineTo(e.pageX-left, e.pageY-top);
                 context.stroke();
             }
         });
 
         this.canvas.addEventListener('mouseup', function(e){
-            if(e.button != 0){
-                paint = true;
-            } else {
-                paint = false;
-                context.lineTo(e.pageX-left, e.pageY-top);
-                context.stroke();
-                context.closePath();
+            if(self.isReady()){
+                if(e.button != 0){
+                    paint = true;
+                } else {
+                    paint = false;
+                    context.lineTo(e.pageX-left, e.pageY-top);
+                    context.stroke();
+                    context.closePath();
+                }
             }
         });
+        this.getWord();
     }
     
     render(){
+        const open = !this.isReady();
+        const youWrote = this.state.writtenWord ? `You wrote "${this.state.writtenWord}"` : '';
+        const result = this.state.result ? `Result: "${this.state.result}"` : '';   
         return (
-            <div>
-                <div>Result: {this.state.result}</div>
-                <canvas ref={this.canvasRef} id="canvas" width="800" height="400" />
-                <div>
-                    <button onClick={this.doOCR.bind(this)}>
+            <div
+                style={{
+                    textAlign: 'center',
+                    margin: 'auto'
+                }}
+            >
+                <div style={{height:16}}>{this.state.successCount} Correct</div>
+                <div style={{height:16}}>Write "{this.state.word}"</div>
+                <div style={{height:16}}>{youWrote}</div>
+                <div style={{height:16}}>{result}</div>
+                <Backdrop open={open}>
+                    <CircularProgress
+                     style={{height:16}}
+                    />
+                </Backdrop>
+                <canvas 
+                    ref={this.canvasRef} 
+                    id="canvas" 
+                    width="400" 
+                    height="200"
+                    style={{
+                        border: '1px solid black'
+                    }} />
+                <div
+                    style={{
+                        width: 400,
+                        textAlign: 'center',
+                        margin: 'auto'
+                    }}
+                >
+                    <button 
+                        style={{
+                            float: 'left'
+                        }}
+                        onClick={this.checkWord.bind(this)}>
                         Check
                     </button>
-                    <button onClick={this.clearCanvas}>
+                    <button onClick={this.clearCanvas.bind(this)}>
                         Clear
+                    </button>
+                    <button 
+                        style={{
+                            float: 'right'
+                        }}
+                        onClick={this.nextWord.bind(this)}
+                    >
+                        Next
                     </button>
                 </div>
             </div>

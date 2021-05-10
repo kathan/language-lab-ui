@@ -1,12 +1,18 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Tesseract from 'tesseract.js';
 
-const DrawingCanvas = props => {
-    const [result, setResult] = useState('');
-    let canvas;
-    const canvasRef = useRef(null);
+class DrawingCanvas extends React.Component{
+    constructor(props){
+        super(props);
+        this.canvas = null;
+        this.context = null;
+        this.canvasRef = React.createRef();
+        this.state = {
+            result: ''
+        };
+    }
     
-    const doOCR = async () => {
+    async doOCR(){
         const { data: { text } } = await Tesseract.recognize(canvas,
         'eng',
         {
@@ -14,24 +20,30 @@ const DrawingCanvas = props => {
             tessedit_pageseg_mode: 8,
             logger: m => console.log(m) 
         });
-        setResult(text);
+        this.setState({result:text});
         console.log(text);
-    };
+    }
 
-    useEffect(() => {
-        canvas = canvasRef.current;
+    clearCanvas(){
+        this.context.fillStyle = '#fff';
+        this.context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    componentDidMount(){
+        this.canvas = this.canvasRef.current;
         const context = canvas.getContext("2d");
+        this.context = context;
+        
+        this.context.fillStyle = '#fff';
+        this.context.lineWidth = 4;
+        this.context.fillRect(0, 0, canvas.width, canvas.height);
 
-        context.fillStyle = '#fff';
-        context.lineWidth = 4;
-        context.fillRect(0, 0, canvas.width, canvas.height);
-
-        context.lineCap = "round";
+        this.context.lineCap = "round";
         let paint = false;
         const left = canvas.offsetLeft;
         const top = canvas.offsetTop;
 
-        canvas.addEventListener('mousedown', function(e){
+        this.canvas.addEventListener('mousedown', function(e){
             if(e.button == 0){
                 paint = true;
                 context.beginPath();
@@ -41,14 +53,14 @@ const DrawingCanvas = props => {
             }
         });
 
-        canvas.addEventListener('mousemove', function(e){
+        this.canvas.addEventListener('mousemove', function(e){
             if(paint){
                 context.lineTo(e.pageX-left, e.pageY-top);
                 context.stroke();
             }
         });
 
-        canvas.addEventListener('mouseup', function(e){
+        this.canvas.addEventListener('mouseup', function(e){
             if(e.button != 0){
                 paint = true;
             } else {
@@ -58,17 +70,24 @@ const DrawingCanvas = props => {
                 context.closePath();
             }
         });
-    });
+    }
     
-    return (
-        <div>
-            <div>Result: {result}</div>
-            <canvas ref={canvasRef} id="canvas" width="800" height="400" />
-            <button onClick={doOCR}>
-                Check
-            </button>
-        </div>
-    );
+    render(){
+        return (
+            <div>
+                <div>Result: {this.state.result}</div>
+                <canvas ref={this.canvasRef} id="canvas" width="800" height="400" />
+                <div>
+                    <button onClick={this.doOCR.bind(this)}>
+                        Check
+                    </button>
+                    <button onClick={this.clearCanvas}>
+                        Clear
+                    </button>
+                </div>
+            </div>
+        );
+    }
 }
 
 export default DrawingCanvas;

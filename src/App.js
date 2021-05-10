@@ -1,4 +1,5 @@
 import React from 'react';
+import DrawingCanvas from './components/DrawingCanvas';
 
 class App extends React.Component{
     constructor(props) {
@@ -8,7 +9,7 @@ class App extends React.Component{
     render(){
         return (
             <React.Fragment>
-                boo
+                <DrawingCanvas/>
             </React.Fragment>
         );
     }

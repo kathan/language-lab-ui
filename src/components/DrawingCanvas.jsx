@@ -26,7 +26,7 @@ class DrawingCanvas extends React.Component{
     async checkWord(){
         await this.doOcr();
         const nextWord = this.nextWord.bind(this);
-        if(this.state.word.toLowerCase() === this.state.writtenWord.toLowerCase()){
+        if(this.state.word.toUpperCase() === this.state.writtenWord.toUpperCase()){
             this.setSuccess();
             setTimeout(function(){ 
                 nextWord();
@@ -43,12 +43,12 @@ class DrawingCanvas extends React.Component{
         await worker.loadLanguage('eng');
         await worker.initialize('eng');
         await worker.setParameters({
-            tessedit_ocr_engine_mode: OEM.OEM_TESSERACT_LSTM_COMBINED,
-            // tessedit_char_whitelist: "abcdefghijklmnopqrstuvwxyz",
+            tessedit_ocr_engine_mode: OEM.LSTM_ONLY,
+            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
             tessedit_pageseg_mode: PSM.SINGLE_WORD,
         });
         const { data: { text } } = await worker.recognize(this.canvas);
-        this.setWrittenWord(text.trim());
+        this.setWrittenWord(text.trim().toUpperCase());
         this.setMode(MODES.READY);
         console.log(text);
     }
@@ -59,13 +59,14 @@ class DrawingCanvas extends React.Component{
             successCount: ++this.state.successCount
         });
     }
+
     clearCanvas(){
         this.canvasContext.fillStyle = '#fff';
         this.canvasContext.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     getWord(){
-        this.setState({word:rword.generate(1, { length: 5 })});
+        this.setState({word:rword.generate(1, { length: 5 }).toUpperCase()});
     }
 
     setMode(mode){

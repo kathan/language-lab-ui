@@ -3,6 +3,7 @@ import { Backdrop, CircularProgress } from '@material-ui/core';
 import { createWorker, PSM, OEM } from 'tesseract.js';
 import { rword } from 'rword';
 
+const wordLength = 3;
 const penWidth = 4;
 const MODES = {
     CHECKING_WORD: 'CHECKING_WORD',
@@ -68,7 +69,7 @@ class DrawingCanvas extends React.Component{
     }
 
     getWord(){
-        this.setState({word:rword.generate(1, { length: 5 }).toUpperCase()});
+        this.setState({word:rword.generate(1, { length: wordLength }).toUpperCase()});
     }
 
     setMode(mode){

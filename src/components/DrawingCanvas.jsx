@@ -1,9 +1,9 @@
 import React from 'react';
-import {Backdrop, CircularProgress} from '@material-ui/core';
+import { Backdrop, CircularProgress } from '@material-ui/core';
 import { createWorker, PSM, OEM } from 'tesseract.js';
 import { rword } from 'rword';
 
-const penWidth = 5;
+const penWidth = 4;
 const MODES = {
     CHECKING_WORD: 'CHECKING_WORD',
     READY: 'READY'
@@ -16,6 +16,7 @@ class DrawingCanvas extends React.Component{
         this.canvasContext = null;
         this.canvasRef = React.createRef();
         this.state = {
+            wrtiting: false,
             writtenWord: '',
             word: '',
             mode: MODES.READY,
@@ -63,6 +64,7 @@ class DrawingCanvas extends React.Component{
     clearCanvas(){
         this.canvasContext.fillStyle = '#fff';
         this.canvasContext.fillRect(0, 0, canvas.width, canvas.height);
+        this.stopWriting();
     }
 
     getWord(){
@@ -92,6 +94,18 @@ class DrawingCanvas extends React.Component{
         return this.state.mode === MODES.READY;
     }
 
+    startWriting(){
+        this.setState({writing:true});
+    }
+
+    stopWriting(){
+        this.setState({writing:false});
+    }
+
+    isWriting(){
+        return this.state.writing;
+    }
+
     componentDidMount(){
         const self = this;
         this.canvas = this.canvasRef.current;
@@ -103,41 +117,45 @@ class DrawingCanvas extends React.Component{
         this.canvasContext.fillRect(0, 0, canvas.width, canvas.height);
 
         this.canvasContext.lineCap = "round";
-        let paint = false;
         const left = this.canvas.offsetLeft;
         const top = this.canvas.offsetTop;
 
         this.canvas.addEventListener('mousedown', function(e){
             if(self.isReady()){
                 if(e.button == 0 ){
-                    paint = true;
+                    self.startWriting();
                     context.beginPath();
                     context.moveTo(e.pageX-left, e.pageY-top);
                 } else {
-                    paint = false;
+                    self.stopWriting();
                 }
             }
         });
 
         this.canvas.addEventListener('mousemove', function(e){
-            if(paint && self.isReady()){
+            if(self.isWriting() && self.isReady()){
                 context.lineTo(e.pageX-left, e.pageY-top);
                 context.stroke();
             }
         });
 
         this.canvas.addEventListener('mouseup', function(e){
-            if(self.isReady()){
+            if(this.isReady()){
                 if(e.button != 0){
-                    paint = true;
+                    this.startWriting();
                 } else {
-                    paint = false;
+                    this.stopWriting();
                     context.lineTo(e.pageX-left, e.pageY-top);
                     context.stroke();
                     context.closePath();
                 }
             }
-        });
+            e.stopPropagation();
+        }.bind(this));
+
+        document.addEventListener("mouseup", function(e){
+            this.stopWriting();
+        }.bind(this));
         this.getWord();
     }
     

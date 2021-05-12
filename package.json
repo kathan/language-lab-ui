@@ -2,10 +2,12 @@
     "dependencies": {
         "@material-ui/core": "4.11.3",
         "@material-ui/icons": "4.11.2",
+        "@mdi/js": "5.9.55",
         "axios": "0.21.1",
         "http-proxy-middleware": "0.19.1",
         "react": "17.0.2",
         "react-dom": "17.0.2",
+        "react-icons": "4.2.0",
         "react-scripts": "4.0.3",
         "rword": "3.2.0",
         "tesseract.js": "2.1.4"

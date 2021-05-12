@@ -1,13 +1,19 @@
 import React from 'react';
-import { Backdrop, CircularProgress } from '@material-ui/core';
+import { IconButton, Backdrop, CircularProgress } from '@material-ui/core';
+import CreateIcon from '@material-ui/icons/Create';
+import { FaEraser as EraserIcon } from 'react-icons/fa';
 import { createWorker, PSM, OEM } from 'tesseract.js';
 import { rword } from 'rword';
 
 const wordLength = 3;
 const penWidth = 4;
+const TOOLS = {
+    PEN: 'PEN',
+    ERASER: 'ERASER'
+};
 const MODES = {
     CHECKING_WORD: 'CHECKING_WORD',
-    READY: 'READY'
+    READY: 'READY',
 };
 
 class DrawingCanvas extends React.Component{
@@ -21,7 +27,8 @@ class DrawingCanvas extends React.Component{
             writtenWord: '',
             word: '',
             mode: MODES.READY,
-            successCount: 0
+            successCount: 0,
+            tool: TOOLS.PEN
         };
     }
     
@@ -107,6 +114,18 @@ class DrawingCanvas extends React.Component{
         return this.state.writing;
     }
 
+    setPen(){
+        this.setState({tool:TOOLS.PEN});
+        this.canvasContext.fillStyle = '#fff';
+        this.canvasContext.lineWidth = penWidth;
+    }
+
+    setEraser(){
+        this.setState({tool:TOOLS.ERASER});
+        this.canvasContext.strokeStyle = '#fff';
+        this.canvasContext.lineWidth = penWidth;
+    }
+
     componentDidMount(){
         const self = this;
         this.canvas = this.canvasRef.current;
@@ -163,7 +182,9 @@ class DrawingCanvas extends React.Component{
     render(){
         const open = !this.isReady();
         const youWrote = this.state.writtenWord ? `You wrote "${this.state.writtenWord}"` : '';
-        const result = this.state.result ? `Result: "${this.state.result}"` : '';   
+        const result = this.state.result ? `Result: "${this.state.result}"` : '';
+        const eraserBorder = (this.state.tool === TOOLS.ERASER ? '1px solid black' : '' );
+        const penBorder = (this.state.tool === TOOLS.PEN ? '1px solid black' : '' );
         return (
             <div
                 style={{
@@ -180,14 +201,41 @@ class DrawingCanvas extends React.Component{
                      style={{height:16}}
                     />
                 </Backdrop>
-                <canvas 
-                    ref={this.canvasRef} 
-                    id="canvas" 
-                    width="400" 
-                    height="200"
-                    style={{
-                        border: '1px solid black'
-                    }} />
+                    <div
+                        style={{
+                            border: '1px solid black',
+                            width: 800,
+                            height: 64,
+                            margin: 'auto'
+                        }}
+                    >
+                        <IconButton
+                            onClick={this.setPen.bind(this)}
+                            style={{
+                                border:{penBorder}
+                            }}
+                        >
+                            <CreateIcon/>
+                        </IconButton>
+                        <IconButton
+                            onClick={this.setEraser.bind(this)}
+                            style={{
+                                border:{eraserBorder}
+                            }}
+                        >
+                            <EraserIcon/>
+                        </IconButton>
+                    </div>
+                    <canvas 
+                        ref={this.canvasRef} 
+                        id="canvas" 
+                        width="800" 
+                        height="400"
+                        style={{
+                            border: '1px solid black',
+                            cursor: 'crosshair'
+                        }} 
+                    />
                 <div
                     style={{
                         width: 400,
